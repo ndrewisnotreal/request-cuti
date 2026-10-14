@@ -1,0 +1,63 @@
+# ==========================================
+# SiCuti Frontend (.gitignore) - Vue 3 / Vite
+# ==========================================
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production & Build Outputs
+dist/
+dist-ssr/
+build/
+*.local
+
+# Vite & Development Caches
+.vite/
+.cache/
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.development.example
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# Logs & Debugging
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE & Editor Files
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Tooling Caches
+.eslintcache
+.prettiercache

@@ -1,0 +1,4 @@
+﻿ID Pengajuan,NIK,Nama Karyawan,Departemen,Jenis Cuti,Tgl Mulai,Tgl Selesai,Hari Kerja,Status,Alasan
+"LR202600004","OS24980032","Ikhsan Nugraha","SIT","Cuti Sakit","2026-10-18T17:00:00.000Z","2026-10-19T17:00:00.000Z","2","Dikembalikan","Sakit flu berat"
+"LR202600002","OS24980032","Ikhsan Nugraha","SIT","Cuti Tahunan","2026-11-01T17:00:00.000Z","2026-11-29T17:00:00.000Z","21","Submitted","Liburan panjang melebihi kuota"
+"LR202600001","OS24980032","Ikhsan Nugraha","SIT","Cuti Tahunan","2026-10-04T17:00:00.000Z","2026-10-05T17:00:00.000Z","2","Disetujui","Urusan keluarga di luar kota"
