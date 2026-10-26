@@ -3,7 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { currentUser, isAdmin, isSuperAdmin, isApprover, isApplicant, can } from '@/service/sicutiService';
 
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
         {
             path: '/',

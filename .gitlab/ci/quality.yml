@@ -1,0 +1,52 @@
+# Repo belum punya ESLint; job tetap ada agar quality gate dan wiring stage tidak berubah.
+eslint-lint:
+  extends:
+    - .node_job
+    - .rules:quality
+  stage: quality
+  script:
+    - echo "ESLint belum dikonfigurasi di cuti-frontend; gate kualitas lewat unit-test"
+
+unit-test:
+  extends:
+    - .node_job
+    - .rules:quality
+  stage: quality
+  script:
+    - npm run test:cov
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    when: always
+    paths:
+      - coverage/
+    expire_in: 1 week
+
+build-sonar:
+  extends: .rules:main
+  stage: analysis
+  image:
+    name: $SONAR_IMAGE
+    entrypoint: [""]
+  needs:
+    - job: unit-test
+      artifacts: true
+  variables:
+    GIT_DEPTH: "0"
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+  cache:
+    key: "sonar-cache-$CI_COMMIT_REF_SLUG"
+    paths:
+      - .sonar/cache
+  script:
+    - sonar-scanner -Dsonar.host.url="${SONAR_HOST_URL}" -Dsonar.scanner.skipCertificateCheck=true
+
+clamav-scan:
+  extends: .rules:main
+  stage: analysis
+  image: $CLAMAV_IMAGE
+  needs: []
+  script:
+    - freshclam || echo "freshclam gagal, scan memakai database virus yang ada"
+    - clamscan -r --infected --exclude-dir='^\./\.git$' .
+  allow_failure:
+    exit_codes: [2]

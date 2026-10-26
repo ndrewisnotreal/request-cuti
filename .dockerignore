@@ -1,0 +1,10 @@
+.git
+.gitlab
+docs
+node_modules
+**/node_modules
+dist
+coverage
+.env
+.env.*
+*.md

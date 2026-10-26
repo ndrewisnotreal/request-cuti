@@ -1,0 +1,51 @@
+# Push ke registry hanya dengan tag commit. Deploy memakai tag yang sama.
+# Alias git tag di-push setelah scan, dan tidak dipakai untuk deploy.
+# Arg Vite dibaca dari CI variable XXX_* karena nilai itu dibakar ke bundle saat build.
+
+build_image:
+  extends:
+    - .docker_job
+    - .rules:deploy
+  stage: build
+  environment:
+    name: $ENV_NAME
+    action: prepare
+  needs: !reference [.quality_gate, needs]
+  script:
+    - sh .gitlab/scripts/build-image.sh
+
+scan_image:
+  extends: .rules:deploy
+  stage: scan
+  image:
+    name: $TRIVY_IMAGE
+    entrypoint: [""]
+  needs:
+    - build_image
+  variables:
+    TRIVY_USERNAME: "$REGISTRY_USER"
+    TRIVY_PASSWORD: "$REGISTRY_PASSWORD"
+    TRIVY_AUTH_URL: "$REGISTRY_URL"
+    TRIVY_CACHE_DIR: .trivycache/
+  cache:
+    key: trivy-db
+    paths:
+      - .trivycache/
+  script:
+    - trivy image --exit-code 1 --severity "$TRIVY_SEVERITY" "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+
+publish_image:
+  extends:
+    - .docker_job
+    - .rules:deploy
+  stage: publish
+  needs:
+    - scan_image
+  script:
+    - docker pull "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA"
+    - |
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        docker tag "$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" "$IMAGE_NAME:$CI_COMMIT_TAG"
+        docker push "$IMAGE_NAME:$CI_COMMIT_TAG"
+      fi
+      echo "Image deploy: $IMAGE_NAME:$CI_COMMIT_SHORT_SHA"

@@ -12,7 +12,9 @@ const useSsl = process.env.npm_lifecycle_event === 'dev:ssl';
 // https://vitejs.dev/config/
 export default defineConfig(() => {
     const backend = useSsl ? 'https://localhost:3001' : 'http://localhost:3001';
+    const base = process.env.VITE_BASE_URL || '/';
     return {
+        base,
         // Dev: VITE_API_BASE_URL=/api → proxy ke Nest (prefix /api dibuang), seperti template-vuejs.
         // Localhost maupun perangkat lain (HP, laptop teman) memakai jalur yang sama.
         server: {

@@ -1,0 +1,39 @@
+# Dipakai development dan staging.
+# TRAEFIK_HOST dan TRAEFIK_PREFIX diisi workflow .gitlab-ci.yml, lalu ditulis ke .env di server.
+
+services:
+  cuti-frontend:
+    image: ${IMAGE_NAME}:${IMAGE_TAG}
+    restart: always
+    env_file:
+      - .env
+    networks:
+      - global-network
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.routers.cuti-frontend.rule=Host(`${TRAEFIK_HOST}`) && PathPrefix(`${TRAEFIK_PREFIX}`)"
+      - "traefik.http.routers.cuti-frontend.entrypoints=websecure"
+      - "traefik.http.routers.cuti-frontend.tls=true"
+
+      - "traefik.http.middlewares.cuti-strip.stripprefix.prefixes=${TRAEFIK_PREFIX}"
+      - "traefik.http.routers.cuti-frontend.middlewares=cuti-strip"
+
+      - "traefik.http.services.cuti-frontend.loadbalancer.server.port=80"
+
+      - "traefik.http.routers.cuti-frontend-http.rule=Host(`${TRAEFIK_HOST}`) && PathPrefix(`${TRAEFIK_PREFIX}`)"
+      - "traefik.http.routers.cuti-frontend-http.entrypoints=web"
+      - "traefik.http.routers.cuti-frontend-http.middlewares=cuti-redirect"
+
+      - "traefik.http.middlewares.cuti-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.cuti-redirect.redirectscheme.permanent=true"
+
+networks:
+  global-network:
+    external: true

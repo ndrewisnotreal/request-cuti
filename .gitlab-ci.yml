@@ -1,0 +1,64 @@
+# Job didefinisikan per concern di .gitlab/ci/, script shell di .gitlab/scripts/.
+# Dokumentasi environment & variable: docs/environments.md
+
+include:
+  - local: .gitlab/ci/templates.yml
+  - local: .gitlab/ci/quality.yml
+  - local: .gitlab/ci/build.yml
+  - local: .gitlab/ci/deploy.yml
+
+stages:
+  - quality
+  - analysis
+  - build
+  - scan
+  - publish
+  - prepare
+  - deploy
+
+variables:
+  GIT_SSL_NO_VERIFY: "1"
+  APPS_NAME: cuti-frontend
+  IMAGE_NAME: "$REGISTRY_URL/cuti/frontend"
+  TRIVY_SEVERITY: HIGH,CRITICAL
+  # Tag deploy = commit. Jangan timpa dengan development/staging/latest.
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+  NODE_IMAGE: node:20.20.2-alpine
+  ALPINE_IMAGE: alpine:3.21
+  DOCKER_IMAGE: docker:27-cli
+  TRIVY_IMAGE: aquasec/trivy:0.58.1
+  SONAR_IMAGE: sonarsource/sonar-scanner-cli:11
+  CLAMAV_IMAGE: clamav/clamav:stable
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+      variables:
+        ENV_NAME: production
+        LINK: https://sicuti.inalum.id
+        DEPLOY_MODE: swarm
+        TARGET_IP: $PROD_IP
+        APP_COMPOSE_FILE: docker-swarm.yaml
+
+    - if: $CI_COMMIT_BRANCH == "main"
+      variables:
+        ENV_NAME: staging
+        LINK: https://staging.inalum.id/cuti
+        DEPLOY_MODE: compose
+        TARGET_IP: $STAGING_IP
+        APP_COMPOSE_FILE: docker-compose.yaml
+        TRAEFIK_HOST: staging.inalum.id
+        TRAEFIK_PREFIX: /cuti
+
+    - if: $CI_COMMIT_BRANCH == "development"
+      variables:
+        ENV_NAME: development
+        LINK: https://development.inalum.id/cuti
+        DEPLOY_MODE: compose
+        TARGET_IP: $DEV_IP
+        APP_COMPOSE_FILE: docker-compose.yaml
+        TRAEFIK_HOST: development.inalum.id
+        TRAEFIK_PREFIX: /cuti
+
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"

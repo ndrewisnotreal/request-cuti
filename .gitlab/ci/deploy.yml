@@ -1,0 +1,61 @@
+# Env aplikasi dari CI variable ber-prefix XXX_.
+# Frontend tidak punya database: prepare_release langsung diikuti deploy_application.
+# Routing tetap lewat label Traefik di compose, bukan Kong.
+
+.release_job:
+  extends: .remote_job
+  environment:
+    name: $ENV_NAME
+    action: prepare
+
+prepare_release:
+  extends: .release_job
+  stage: prepare
+  needs:
+    - publish_image
+  script:
+    - sh .gitlab/scripts/generate-env.sh XXX_ .env
+    - |
+      if [ "$DEPLOY_MODE" = "compose" ]; then
+        if [ -z "${TRAEFIK_HOST:-}" ] || [ -z "${TRAEFIK_PREFIX:-}" ]; then
+          echo "TRAEFIK_HOST atau TRAEFIK_PREFIX kosong. Isi di workflow .gitlab-ci.yml."
+          exit 1
+        fi
+        grep -v -E '^(TRAEFIK_HOST|TRAEFIK_PREFIX)=' .env > .env.routing || true
+        mv .env.routing .env
+        printf 'TRAEFIK_HOST=%s\nTRAEFIK_PREFIX=%s\n' "$TRAEFIK_HOST" "$TRAEFIK_PREFIX" >> .env
+        chmod 600 .env
+        echo "Routing Traefik: host=$TRAEFIK_HOST prefix=$TRAEFIK_PREFIX"
+      fi
+    - ssh "$DEPLOYER@$SSH_HOST" "mkdir -p '$DEPLOY_PATH'"
+    - remote_copy "$APP_COMPOSE_FILE" "$DEPLOY_PATH/docker-compose.yaml"
+    - remote_copy .env "$DEPLOY_PATH/.env"
+    - ssh "$DEPLOYER@$SSH_HOST" "chmod 600 '$DEPLOY_PATH/.env'"
+    - remote_docker_login
+    - >
+      remote_run .gitlab/scripts/remote/pull-image.sh
+      DEPLOY_PATH="$DEPLOY_PATH"
+      APPS_NAME="$APPS_NAME"
+      IMAGE_NAME="$IMAGE_NAME"
+      IMAGE_TAG="$IMAGE_TAG"
+      TRAEFIK_HOST="$TRAEFIK_HOST"
+      TRAEFIK_PREFIX="$TRAEFIK_PREFIX"
+
+deploy_application:
+  extends: .remote_job
+  stage: deploy
+  needs:
+    - prepare_release
+  environment:
+    name: $ENV_NAME
+    url: $LINK
+  script:
+    - >
+      remote_run .gitlab/scripts/remote/deploy-app.sh
+      DEPLOY_PATH="$DEPLOY_PATH"
+      APPS_NAME="$APPS_NAME"
+      DEPLOY_MODE="$DEPLOY_MODE"
+      IMAGE_NAME="$IMAGE_NAME"
+      IMAGE_TAG="$IMAGE_TAG"
+      TRAEFIK_HOST="$TRAEFIK_HOST"
+      TRAEFIK_PREFIX="$TRAEFIK_PREFIX"
