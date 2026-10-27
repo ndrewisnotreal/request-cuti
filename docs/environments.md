@@ -58,7 +58,16 @@ Development dan staging memakai file Compose yang sama. Host dan prefix Traefik 
 `prepare_release` menulis kedua nilai itu ke `.env` di server. Compose menginterpolasinya ke label Traefik.
 Production memakai `docker-swarm.yaml` dengan host `sicuti.inalum.id` tanpa prefix path.
 
-Nilai `VITE_*` dibakar saat `docker build`, bukan saat container Nginx start. Job build berada di environment GitLab yang sama agar variable `XXX_*` yang di-scope per environment ikut terbawa.
+Nginx mem-proxy `/api` (dan `/cuti/api`) ke `BACKEND_URL` dari workflow, dengan strip prefix `/api` seperti Vite lokal:
+
+| Environment | `BACKEND_URL` |
+|---|---|
+| development | `https://devapi.inalum.id/cuti` |
+| staging | `https://stagingapi.inalum.id/cuti` |
+| production | `https://rest.inalum.id/cuti` |
+
+Bundle memakai `VITE_API_BASE_URL=/api` agar request browser tetap same-origin ke Nginx, lalu di-forward ke Kong/backend.
+Nilai `VITE_*` dibakar saat `docker build`; `BACKEND_URL` runtime di container Nginx.
 
 ## Rollback
 
@@ -81,12 +90,14 @@ Simpan di Settings → CI/CD → Variables. Variable `XXX_*` di-scope per enviro
 | `DEPLOYER` | ya | - | User SSH di server |
 | `DEV_IP`, `STAGING_IP`, `PROD_IP` | ya | - | Alamat server app |
 | `SONAR_HOST_URL`, `SONAR_TOKEN` | ya (main) | token: masked | SonarQube |
-| `XXX_VITE_API_BASE_URL` | ya | - | Base URL API di bundle (contoh: `https://devapi.inalum.id/cuti`) |
+| `XXX_VITE_API_BASE_URL` | ya | - | Path API di browser; gunakan `/api` (Nginx proxy) |
 | `XXX_VITE_APP_KEY` | ya | masked | Harus sama dengan `API_TOKEN` backend |
 | `XXX_VITE_ENCRYPTION_SECRET_KEY` | ya | masked | 32 karakter untuk enkripsi localStorage |
 | `XXX_VITE_BASE_URL` | ya | - | Base path Vite. Dev/staging: `/cuti/`. Production: `/` |
 | `XXX_VITE_PUBLIC_APP_URL` | tidak | - | URL publik untuk QR surat cuti |
 | `DOCKERFILE` | tidak | - | Default `Dockerfile` |
+
+`BACKEND_URL` diisi dari workflow `.gitlab-ci.yml` (bukan CI variable manual) dan ditulis ke `.env` server saat `prepare_release`.
 
 Jangan commit nilai variable di atas.
 

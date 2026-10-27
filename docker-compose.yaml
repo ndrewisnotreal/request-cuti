@@ -7,6 +7,8 @@ services:
     restart: always
     env_file:
       - .env
+    environment:
+      BACKEND_URL: ${BACKEND_URL:?BACKEND_URL required}
     networks:
       - global-network
     healthcheck:

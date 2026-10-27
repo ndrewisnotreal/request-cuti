@@ -25,7 +25,7 @@ RUN rm -f .env .env.*
 RUN npm run build
 
 # ===============================
-# Stage 2 — Nginx
+# Stage 2 — Nginx (+ proxy /api → BACKEND_URL)
 # ===============================
 FROM nginx:1.30.2-alpine
 
@@ -35,7 +35,10 @@ RUN apk update \
     && rm -rf /usr/share/nginx/html/*
 
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+# Official image: envsubst *.template → /etc/nginx/conf.d/ saat start
+COPY nginx/default.conf /etc/nginx/templates/default.conf.template
+
+ENV BACKEND_URL=http://127.0.0.1:3001
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

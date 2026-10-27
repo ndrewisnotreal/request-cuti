@@ -16,17 +16,23 @@ prepare_release:
   script:
     - sh .gitlab/scripts/generate-env.sh XXX_ .env
     - |
+      if [ -z "${BACKEND_URL:-}" ]; then
+        echo "BACKEND_URL kosong. Isi di workflow .gitlab-ci.yml."
+        exit 1
+      fi
+      grep -v -E '^(BACKEND_URL|TRAEFIK_HOST|TRAEFIK_PREFIX)=' .env > .env.routing || true
+      mv .env.routing .env
+      printf 'BACKEND_URL=%s\n' "$BACKEND_URL" >> .env
       if [ "$DEPLOY_MODE" = "compose" ]; then
         if [ -z "${TRAEFIK_HOST:-}" ] || [ -z "${TRAEFIK_PREFIX:-}" ]; then
           echo "TRAEFIK_HOST atau TRAEFIK_PREFIX kosong. Isi di workflow .gitlab-ci.yml."
           exit 1
         fi
-        grep -v -E '^(TRAEFIK_HOST|TRAEFIK_PREFIX)=' .env > .env.routing || true
-        mv .env.routing .env
         printf 'TRAEFIK_HOST=%s\nTRAEFIK_PREFIX=%s\n' "$TRAEFIK_HOST" "$TRAEFIK_PREFIX" >> .env
-        chmod 600 .env
         echo "Routing Traefik: host=$TRAEFIK_HOST prefix=$TRAEFIK_PREFIX"
       fi
+      chmod 600 .env
+      echo "Nginx proxy /api → $BACKEND_URL"
     - ssh "$DEPLOYER@$SSH_HOST" "mkdir -p '$DEPLOY_PATH'"
     - remote_copy "$APP_COMPOSE_FILE" "$DEPLOY_PATH/docker-compose.yaml"
     - remote_copy .env "$DEPLOY_PATH/.env"
@@ -38,6 +44,7 @@ prepare_release:
       APPS_NAME="$APPS_NAME"
       IMAGE_NAME="$IMAGE_NAME"
       IMAGE_TAG="$IMAGE_TAG"
+      BACKEND_URL="$BACKEND_URL"
       TRAEFIK_HOST="$TRAEFIK_HOST"
       TRAEFIK_PREFIX="$TRAEFIK_PREFIX"
 
@@ -57,5 +64,6 @@ deploy_application:
       DEPLOY_MODE="$DEPLOY_MODE"
       IMAGE_NAME="$IMAGE_NAME"
       IMAGE_TAG="$IMAGE_TAG"
+      BACKEND_URL="$BACKEND_URL"
       TRAEFIK_HOST="$TRAEFIK_HOST"
       TRAEFIK_PREFIX="$TRAEFIK_PREFIX"

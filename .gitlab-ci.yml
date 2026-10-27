@@ -40,6 +40,8 @@ workflow:
         DEPLOY_MODE: swarm
         TARGET_IP: $PROD_IP
         APP_COMPOSE_FILE: docker-swarm.yaml
+        # Nginx proxy_pass /api → Kong path backend
+        BACKEND_URL: https://rest.inalum.id/cuti
 
     - if: $CI_COMMIT_BRANCH == "main"
       variables:
@@ -50,6 +52,7 @@ workflow:
         APP_COMPOSE_FILE: docker-compose.yaml
         TRAEFIK_HOST: staging.inalum.id
         TRAEFIK_PREFIX: /cuti
+        BACKEND_URL: https://stagingapi.inalum.id/cuti
 
     - if: $CI_COMMIT_BRANCH == "development"
       variables:
@@ -60,5 +63,6 @@ workflow:
         APP_COMPOSE_FILE: docker-compose.yaml
         TRAEFIK_HOST: development.inalum.id
         TRAEFIK_PREFIX: /cuti
+        BACKEND_URL: https://devapi.inalum.id/cuti
 
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
