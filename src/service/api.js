@@ -1,26 +1,18 @@
 import { removeEncryptedItem } from '@/utils/encryption';
 
-// Sama seperti template-vuejs: semua request lewat VITE_API_BASE_URL (/api), lalu proxy Vite
-// meneruskannya ke backend dengan awalan /api dibuang. Berlaku juga dari HP/laptop lain di jaringan.
 export const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
-// Header x-api-key; harus sama dengan API_TOKEN backend.
 export const APP_KEY = import.meta.env.VITE_APP_KEY || '';
 
-// Sesi lokal (terenkripsi dengan VITE_ENCRYPTION_SECRET_KEY). Token login tidak disimpan di sini:
-// backend memasangnya sebagai cookie httpOnly yang tidak bisa dibaca JavaScript.
 export const SESSION_KEYS = ['sicuti_auth', 'sicuti_user_menus', 'sicuti_abilities'];
 
-/** sessionStorage: alasan sesi diputus (401), ditampilkan sekali di halaman login. */
 export const LOGOUT_NOTICE_KEY = 'sicuti_logout_notice';
 
-// Versi lama menyimpan JWT apa adanya di storage; hapus agar tidak tertinggal di browser.
 try {
     localStorage.removeItem('sicuti_token');
     sessionStorage.removeItem('sicuti_token');
 } catch {}
 
-// Path berkas dari backend (mis. /uploads/avatars/x.png) → URL lengkap
 export function assetUrl(p) {
     if (!p) return null;
     return /^https?:\/\//.test(p) ? p : `${API_BASE}${p}`;
@@ -28,22 +20,14 @@ export function assetUrl(p) {
 
 export function clearAuth() {
     SESSION_KEYS.forEach(removeEncryptedItem);
+    forgetSharedGets();
 }
 
-async function request(endpoint, options = {}) {
-    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
-    // Header JSON hanya bila ada body: Fastify menolak (400) JSON kosong, mis. POST /auth/logout
-    const hasJsonBody = !isFormData && options.body !== undefined;
-    const headers = {
-        ...(hasJsonBody ? { 'Content-Type': 'application/json' } : {}),
-        'x-api-key': APP_KEY,
-        ...(options.headers || {})
-    };
-
+function buildUrl(endpoint, params) {
     let url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
-    if (options.params && typeof options.params === 'object') {
+    if (params && typeof params === 'object') {
         const query = new URLSearchParams();
-        for (const [key, val] of Object.entries(options.params)) {
+        for (const [key, val] of Object.entries(params)) {
             if (val !== undefined && val !== null && val !== '') {
                 query.append(key, String(val));
             }
@@ -53,8 +37,20 @@ async function request(endpoint, options = {}) {
             url += (url.includes('?') ? '&' : '?') + qs;
         }
     }
+    return url;
+}
 
-    // Cookie login (httpOnly) ikut terkirim, seperti withCredentials di template
+async function request(endpoint, options = {}) {
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    const hasJsonBody = !isFormData && options.body !== undefined;
+    const headers = {
+        ...(hasJsonBody ? { 'Content-Type': 'application/json' } : {}),
+        'x-api-key': APP_KEY,
+        ...(options.headers || {})
+    };
+
+    const url = buildUrl(endpoint, options.params);
+
     const res = await fetch(url, {
         ...options,
         headers,
@@ -62,11 +58,9 @@ async function request(endpoint, options = {}) {
     });
 
     if (res.status === 401) {
-        // Pesan backend (mis. "Username atau password salah", "Akun tidak aktif") tetap diteruskan
         const body = await res.json().catch(() => null);
         clearAuth();
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
-            // Alasan sesi diputus (mis. izin login dicabut) ditampilkan di halaman login
             try {
                 if (body?.message) sessionStorage.setItem(LOGOUT_NOTICE_KEY, body.message);
             } catch {}
@@ -93,18 +87,8 @@ async function request(endpoint, options = {}) {
     return data;
 }
 
-/**
- * Ambil berkas (lampiran, CSV) dengan header & cookie login yang sama seperti request lain.
- * Hasil: { blob, filename } — filename dari Content-Disposition bila ada.
- */
 async function requestBlob(endpoint, params) {
-    let url = `${API_BASE}${endpoint}`;
-    const query = new URLSearchParams();
-    for (const [key, val] of Object.entries(params || {})) {
-        if (val !== undefined && val !== null && val !== '') query.append(key, String(val));
-    }
-    if (query.toString()) url += (url.includes('?') ? '&' : '?') + query.toString();
-    const res = await fetch(url, { headers: { 'x-api-key': APP_KEY }, credentials: 'include' });
+    const res = await fetch(buildUrl(endpoint, params), { headers: { 'x-api-key': APP_KEY }, credentials: 'include' });
     if (!res.ok) {
         const body = await res.json().catch(() => null);
         const err = new Error(body?.error || body?.message || res.statusText || 'Berkas tidak bisa diambil');
@@ -116,7 +100,6 @@ async function requestBlob(endpoint, params) {
     return { blob: await res.blob(), filename: match ? decodeURIComponent(match[1]) : '' };
 }
 
-/** Simpan blob sebagai berkas unduhan. */
 export function saveBlob(blob, filename) {
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -127,25 +110,66 @@ export function saveBlob(blob, filename) {
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 
+const RECENT_GET_MS = 2000;
+const sharedGets = new Map();
+const copyOf = (data) => (data && typeof data === 'object' ? structuredClone(data) : data);
+
+function forgetSharedGets() {
+    sharedGets.clear();
+}
+
+function forgetFinishedGets() {
+    for (const [key, entry] of sharedGets) if (entry.doneAt) sharedGets.delete(key);
+}
+if (typeof window !== 'undefined') {
+    for (const type of ['pointerdown', 'keydown']) window.addEventListener(type, forgetFinishedGets, { capture: true, passive: true });
+}
+
+function sharedGet(url, params) {
+    const key = buildUrl(url, params);
+    const hit = sharedGets.get(key);
+    if (hit && (!hit.doneAt || Date.now() - hit.doneAt < RECENT_GET_MS)) return hit.promise.then(copyOf);
+    const entry = { doneAt: 0 };
+    const drop = () => sharedGets.get(key) === entry && sharedGets.delete(key);
+    entry.promise = request(url, { method: 'GET', params }).then(
+        (data) => {
+            entry.doneAt = Date.now();
+            setTimeout(drop, RECENT_GET_MS);
+            return data;
+        },
+        (err) => {
+            drop();
+            throw err;
+        }
+    );
+    sharedGets.set(key, entry);
+    return entry.promise.then(copyOf);
+}
+
+function write(url, options) {
+    forgetSharedGets();
+    return request(url, options).finally(forgetSharedGets);
+}
+
 export const api = {
-    get: (url, params) => request(url, { method: 'GET', params }),
+    get: (url, params) => sharedGet(url, params),
     blob: (url, params) => requestBlob(url, params),
     post: (url, data) => {
         const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
-        return request(url, {
+        return write(url, {
             method: 'POST',
             body: isFormData ? data : (data !== undefined ? JSON.stringify(data) : undefined)
         });
     },
-    upload: (url, formData) => request(url, { method: 'POST', body: formData }),
+    upload: (url, formData) => write(url, { method: 'POST', body: formData }),
     put: (url, data) => {
         const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
-        return request(url, {
+        return write(url, {
             method: 'PUT',
             body: isFormData ? data : (data !== undefined ? JSON.stringify(data) : undefined)
         });
     },
-    delete: (url, data) => request(url, { method: 'DELETE', body: data ? JSON.stringify(data) : undefined })
+    delete: (url, data) => write(url, { method: 'DELETE', body: data ? JSON.stringify(data) : undefined })
 };
 
 export default api;

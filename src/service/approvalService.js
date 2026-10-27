@@ -17,6 +17,11 @@ export const approvalService = {
         return [];
     },
 
+    async getOnLeaveToday() {
+        const res = await api.get('/sicuti/leave-request/on-leave-today');
+        return Array.isArray(res?.data) ? res.data : [];
+    },
+
     async processApproval({ idRequest, id_request, action, notes, signature }) {
         const payload = {
             id_request: idRequest || id_request,

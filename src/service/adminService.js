@@ -1,7 +1,7 @@
 import api from './api';
+import { statusReasonLabel } from './statusReason';
 
 export const adminService = {
-    // User / Akun Management
     async getUsers(params = {}) {
         const res = await api.get('/master/user', params);
         return res?.data || res || [];
@@ -21,6 +21,11 @@ export const adminService = {
         return res?.data || res;
     },
 
+    async getStatusHistory(uid) {
+        const res = await api.get('/master/user/status-history', { uid });
+        return res?.data || [];
+    },
+
     async deleteUser(uid) {
         const res = await api.delete('/master/user', { uid_user_system: uid });
         return res?.data || res;
@@ -31,24 +36,16 @@ export const adminService = {
         return res?.data || res;
     },
 
-    // Departemen
     async getDepartments(all = true) {
         const res = await api.get('/sicuti/department', { all: all ? 'true' : 'false' });
         return res?.data || res || [];
     },
 
-    // Monitoring Pengajuan Cuti
-    // Tanpa limit backend hanya mengirim 20 baris pertama
-    async getMonitoringRequests(params = {}) {
+    async getLeaveRequests(params = {}) {
         const res = await api.get('/sicuti/leave-request', { limit: 1000, ...params });
         return res?.data?.data || res?.data || [];
     },
 
-    async getMonitoringLeaves(params = {}) {
-        return this.getMonitoringRequests(params);
-    },
-
-    // Saldo Cuti
     async getBalances(year) {
         const res = await api.get('/sicuti/leave-balance', year ? { year } : {});
         return res?.data || res || [];
@@ -59,7 +56,6 @@ export const adminService = {
         return res?.data || res;
     },
 
-    // Approval Template & Flow
     async getApprovalTemplates(params = {}) {
         const res = await api.get('/sicuti/approval-template', params);
         return res?.data || res || [];
@@ -76,7 +72,6 @@ export const adminService = {
     },
 
     async deleteApprovalTemplate(idTemplate) {
-        // Backend membaca id dari query string (bukan body)
         const res = await api.delete(`/sicuti/approval-template?id_template=${encodeURIComponent(idTemplate)}`);
         return res?.data || res;
     },
@@ -87,7 +82,6 @@ export const adminService = {
         return res?.data || res || [];
     },
 
-    /** Akun yang boleh dijadikan approver (role dengan izin Approve/Reject, akun aktif). */
     async getEligibleApprovers() {
         const res = await api.get('/sicuti/approval-flow/eligible-approvers');
         return res?.data || res || [];
@@ -104,18 +98,15 @@ export const adminService = {
     },
 
     async deleteApprovalFlow(idFlow) {
-        // Backend membaca id dari query string (bukan body)
         const res = await api.delete(`/sicuti/approval-flow?id_flow=${encodeURIComponent(idFlow)}`);
         return res?.data || res;
     },
 
-    /** Peran yang bisa dijadikan tingkat approval (punya izin Approve/Reject). */
     async getApproverRoles() {
         const res = await api.get('/sicuti/approval-flow/roles');
         return res?.data || res || [];
     },
 
-    /** Simpan urutan tingkat hasil tahan-dan-geser (semua id_flow, dari tingkat 1). */
     async reorderApprovalFlows(idTemplate, order) {
         const res = await api.put('/sicuti/approval-flow/order', { id_template: idTemplate, order });
         return res?.data || res || [];
@@ -131,7 +122,6 @@ export const adminService = {
         return res?.data || res || [];
     },
 
-    /** Karyawan biasa yang belum masuk templat mana pun (pengajuannya akan ditolak). */
     async getUnassignedEmployees() {
         const res = await api.get('/sicuti/approval-template/unassigned');
         return res?.data || res || [];
@@ -147,7 +137,6 @@ export const adminService = {
         return res?.data || res;
     },
 
-    // Jenis Cuti
     async getLeaveTypes(all = true) {
         const res = await api.get('/sicuti/leave-type', { all: all ? 'true' : 'false' });
         return res?.data || res || [];
@@ -163,12 +152,6 @@ export const adminService = {
         return res?.data || res;
     },
 
-    // Hari Libur
-    async getHolidays(year = new Date().getFullYear()) {
-        const res = await api.get('/sicuti/holiday', { year });
-        return res?.data || res || [];
-    },
-
     async createHoliday(data) {
         const res = await api.post('/sicuti/holiday', data);
         return res?.data || res;
@@ -179,7 +162,6 @@ export const adminService = {
         return res?.data || res;
     },
 
-    // Kebijakan Cuti
     async getPolicy() {
         const res = await api.get('/sicuti/policy');
         return res?.data || res;
@@ -190,13 +172,6 @@ export const adminService = {
         return res?.data || res;
     },
 
-    // Laporan
-    async getReports(params = {}) {
-        const res = await api.get('/sicuti/leave-request', { limit: 1000, ...params });
-        return res?.data?.data || res?.data || [];
-    },
-
-    // Audit Trail: log asli dari backend (tanpa data contoh)
     async getAuditLogs(params = {}) {
         const res = await api.get('/sicuti/audit-trail', { limit: 500, ...params });
         const rows = res?.data?.data || res?.data || [];
@@ -214,7 +189,6 @@ export const adminService = {
     }
 };
 
-/** ISO/UTC dari API → "YYYY-MM-DD HH:mm:ss" waktu lokal (WIB), bukan potongan string UTC. */
 function localDateTime(value) {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value || '';
@@ -222,7 +196,6 @@ function localDateTime(value) {
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
-/** Label aksi audit trail (kode dari backend AuditInterceptor & AuthService). */
 export const AUDIT_ACTION_LABEL = {
     LOGIN: 'Masuk aplikasi',
     LOGOUT: 'Keluar aplikasi',
@@ -238,6 +211,7 @@ export const AUDIT_ACTION_LABEL = {
     CREATE_USER: 'Buat akun',
     UPDATE_USER: 'Ubah akun',
     DELETE_USER: 'Hapus akun',
+    DEACTIVATE_USER: 'Nonaktifkan akun',
     RESET_PASSWORD: 'Ganti password oleh admin',
     CHANGE_PASSWORD: 'Ganti password',
     UNLOCK_USER: 'Buka kunci akun',
@@ -252,8 +226,10 @@ export const AUDIT_ACTION_LABEL = {
     UPDATE_POLICY: 'Ubah kebijakan cuti',
     SAVE_APPROVAL_FLOW: 'Simpan tingkat approval',
     DELETE_APPROVAL_FLOW: 'Hapus tingkat approval',
+    REORDER_APPROVAL_FLOW: 'Ubah urutan approval',
     ASSIGN_APPROVER: 'Tetapkan approver',
     SAVE_APPROVAL_TEMPLATE: 'Simpan templat approval',
+    DELETE_APPROVAL_TEMPLATE: 'Hapus templat approval',
     SAVE_DEPARTMENT: 'Simpan departemen',
     UPDATE_PERMISSION: 'Ubah hak akses',
     ACCESS_DENIED: 'Akses ditolak'
@@ -286,6 +262,15 @@ function describeAudit(a) {
               .map(([k, v]) => `${k}: ${v}`)
         : [];
     const label = AUDIT_ACTION_LABEL[a.action] || a.action;
+    if (a.action === 'DEACTIVATE_USER') {
+        return [
+            `${label}${a.entity_id ? ` ${a.entity_id}` : ''}`,
+            body?.status_reason ? `Alasan: ${statusReasonLabel(body.status_reason)}` : '',
+            body?.status_note ? `Keterangan: ${body.status_note}` : ''
+        ]
+            .filter(Boolean)
+            .join(' · ');
+    }
     const extra = data?.reason ? ` (${data.reason})` : '';
     return [`${label}${a.entity_id ? ` ${a.entity_id}` : ''}${extra}`, ...fields].join(' · ');
 }

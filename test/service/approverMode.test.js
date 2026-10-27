@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { appMode, canSubmitLeave, currentUser, isApplicant, isApprovalOnly } from '@/service/sicutiService';
 import { userAbilities } from '@/service/authService';
 
-// Approver tidak mengajukan cuti: tanpa sakelar Pengajuan/Approval dan tanpa riwayat pengajuan pribadi
 describe('approver selalu mode Approval', () => {
     afterEach(() => {
         currentUser.value = null;
