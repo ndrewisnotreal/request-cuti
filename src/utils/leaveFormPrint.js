@@ -49,7 +49,7 @@ const lines = (arr) => arr.map((t) => `<div class="ln">${t === '' ? '&nbsp;' : t
 
 export function publicAppOrigin() {
     const configured = import.meta.env?.VITE_PUBLIC_APP_URL;
-    return String(configured || window.location.origin).replace(/\/+$/, '');
+    return String(configured || `${window.location.origin}${import.meta.env.BASE_URL}`).replace(/\/+$/, '');
 }
 
 export function isQrReachableFromPhone() {

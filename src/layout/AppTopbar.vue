@@ -1,4 +1,5 @@
 <script setup>
+import { publicPath } from '@/utils/publicPath';
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter, RouterLink } from 'vue-router';
 import { useLayout } from '@/layout/composables/layout';
@@ -129,7 +130,7 @@ function handleLogout() {
                 <PanelLeftClose v-else :size="20" :stroke-width="1.75" />
             </button>
             <router-link to="/" :class="['flex items-center gap-2 sm:gap-2.5 min-w-0', { 'lg:hidden': showSidebar }]">
-                <img src="/logo-inalum.png" alt="Logo PT INALUM" class="h-7 sm:h-8 w-auto object-contain shrink-0" />
+                <img :src="publicPath('logo-inalum.png')" alt="Logo PT INALUM" class="h-7 sm:h-8 w-auto object-contain shrink-0" />
                 <div class="flex flex-col min-w-0 max-[359px]:hidden">
                     <span class="font-bold text-base leading-tight text-primary">Lebur</span>
                     <span class="hidden sm:block text-xs text-muted-color font-normal whitespace-nowrap">PT Indonesia Asahan Aluminium</span>

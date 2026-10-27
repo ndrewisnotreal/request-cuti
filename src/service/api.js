@@ -1,4 +1,5 @@
 import { removeEncryptedItem } from '@/utils/encryption';
+import { publicPath } from '@/utils/publicPath';
 
 export const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -64,7 +65,7 @@ async function request(endpoint, options = {}) {
             try {
                 if (body?.message) sessionStorage.setItem(LOGOUT_NOTICE_KEY, body.message);
             } catch {}
-            window.location.href = '/auth/login';
+            window.location.href = publicPath('auth/login');
         }
         const err = new Error(body?.error || body?.message || 'Sesi berakhir, silakan login kembali');
         err.status = 401;

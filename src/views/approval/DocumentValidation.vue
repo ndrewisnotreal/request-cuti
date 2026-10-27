@@ -1,4 +1,5 @@
 <script setup>
+import { publicPath } from '@/utils/publicPath';
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { API_BASE, APP_KEY } from '@/service/api';
@@ -79,7 +80,7 @@ onMounted(validate);
     <div class="min-h-screen bg-[#f1f4f9] text-[#1f2a44] antialiased">
         <header class="bg-white border-b border-[#e3e8f0]">
             <div class="max-w-xl mx-auto px-4 h-14 flex items-center gap-2.5">
-                <img src="/logo-inalum.png" alt="Logo PT INALUM" class="h-7 w-auto" />
+                <img :src="publicPath('logo-inalum.png')" alt="Logo PT INALUM" class="h-7 w-auto" />
                 <div class="leading-tight">
                     <div class="font-bold text-primary">Lebur</div>
                     <div class="text-[11px] text-[#6b7a90]">Validasi dokumen cuti</div>

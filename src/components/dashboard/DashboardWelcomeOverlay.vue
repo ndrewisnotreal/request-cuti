@@ -1,4 +1,5 @@
 <script setup>
+import { publicPath } from '@/utils/publicPath';
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useLayout } from '@/layout/composables/layout';
@@ -78,7 +79,7 @@ async function startBlurSequence() {
                             isDarkTheme ? 'bg-surface-900/90 border border-white/10' : 'bg-white/95 border border-surface-200/90 shadow-xs'
                         ]"
                     >
-                        <img src="/logo-inalum.png" alt="Logo PT INALUM" class="w-full h-full object-contain" />
+                        <img :src="publicPath('logo-inalum.png')" alt="Logo PT INALUM" class="w-full h-full object-contain" />
                     </div>
                 </div>
 

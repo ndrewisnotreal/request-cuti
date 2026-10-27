@@ -1,4 +1,5 @@
 <script setup>
+import { publicPath } from '@/utils/publicPath';
 import { useLayout } from '@/layout/composables/layout';
 import AppTopbar from './AppTopbar.vue';
 import AppMenu from './AppMenu.vue';
@@ -27,7 +28,7 @@ const { mobileMenuOpen, closeMobileMenu, isSidebarCollapsed } = useLayout();
                 :title="isSidebarCollapsed ? 'Lebur — PT Indonesia Asahan Aluminium' : undefined"
                 :class="['flex items-center h-16 shrink-0 gap-3', isSidebarCollapsed ? 'justify-center' : 'px-4']"
             >
-                <img src="/logo-inalum-mark.png" alt="Logo PT INALUM" class="w-8 h-8 object-contain shrink-0" />
+                <img :src="publicPath('logo-inalum-mark.png')" alt="Logo PT INALUM" class="w-8 h-8 object-contain shrink-0" />
                 <div v-if="!isSidebarCollapsed" class="flex flex-col min-w-0">
                     <span class="font-bold text-lg leading-tight text-primary">Lebur</span>
                     <span class="text-[11px] text-muted-color whitespace-nowrap truncate">PT Indonesia Asahan Aluminium</span>

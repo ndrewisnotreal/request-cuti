@@ -1,4 +1,5 @@
 <script setup>
+import { publicPath } from '@/utils/publicPath';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import api, { LOGOUT_NOTICE_KEY } from '@/service/api';
@@ -111,7 +112,7 @@ function cancelExpired(message = '') {
 
 <template>
     <div class="min-h-screen flex flex-col items-center justify-center p-4 relative bg-surface-50 dark:bg-surface-950 overflow-hidden">
-        <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/assets/Pabrik-INALUM.jpg')"></div>
+        <div class="absolute inset-0 bg-cover bg-center" :style="{ backgroundImage: `url('${publicPath('assets/Pabrik-INALUM.jpg')}')` }"></div>
         <div
             :class="[
                 'absolute inset-0 transition-colors duration-500',
@@ -134,7 +135,7 @@ function cancelExpired(message = '') {
 
         <div class="relative z-10 w-full max-w-md bg-white/95 dark:bg-surface-900/95 rounded-2xl p-6 shadow-2xl border border-white/20 dark:border-surface-800/80 backdrop-blur-sm">
             <div class="text-center mb-5">
-                <img src="/logo-inalum.png" alt="Logo PT INALUM" class="h-16 w-auto object-contain mx-auto mb-3" />
+                <img :src="publicPath('logo-inalum.png')" alt="Logo PT INALUM" class="h-16 w-auto object-contain mx-auto mb-3" />
                 <h1 class="text-2xl font-black text-primary leading-tight">Lebur</h1>
                 <p class="text-[11px] text-muted-color mt-1 tracking-wide">Sistem Manajemen Cuti Digital &bull; PT INALUM</p>
             </div>

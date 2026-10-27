@@ -1,4 +1,5 @@
 <script setup>
+import { publicPath } from '@/utils/publicPath';
 import { computed, ref, watch } from 'vue';
 import { leaveService } from '@/service/leaveService';
 import {
@@ -202,7 +203,7 @@ async function printDocument() {
         komentar: atasan?.notes || '',
         atasan: signerOf(atasan),
         mengetahui: signerOf(mengetahui),
-        logoUrl: `${window.location.origin}/logo-sinergi.png`
+        logoUrl: `${window.location.origin}${publicPath('logo-sinergi.png')}`
     });
 
     printWindow.document.open();
