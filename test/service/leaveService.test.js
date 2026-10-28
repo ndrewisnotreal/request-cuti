@@ -26,3 +26,30 @@ describe('leaveService draf pengajuan (QA #7)', () => {
         expect(api.put).toHaveBeenCalledWith('/sicuti/leave-request/REQ-SIT-0001%2F2030', expect.objectContaining({ is_draft: true }));
     });
 });
+
+describe('leaveService tanpa request ganda (revisi uji UI)', () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it('getLeaveTypes(false) memakai URL yang sama dengan sinkronisasi (tanpa ?all=false)', async () => {
+        api.get.mockResolvedValue({ data: [] });
+        await leaveService.getLeaveTypes(false);
+        expect(api.get).toHaveBeenLastCalledWith('/sicuti/leave-type', {});
+        await leaveService.getLeaveTypes(true);
+        expect(api.get).toHaveBeenLastCalledWith('/sicuti/leave-type', { all: 'true' });
+    });
+
+    it('getBalanceMutations memakai saldo yang sudah dimuat halaman (tidak memuat saldo dua kali)', async () => {
+        api.get.mockResolvedValue({ data: [] });
+        const balances = [{ year: 2026, annual_quota: 12, carry_over_days: 0, used_days: 6 }];
+        const muts = await leaveService.getBalanceMutations({ year: 2026, balances });
+        const urls = api.get.mock.calls.map((c) => c[0]);
+        expect(urls).toEqual(['/sicuti/leave-balance/history']);
+        expect(muts[0]).toMatchObject({ type: 'credit', amount: 12 });
+    });
+
+    it('getBalanceMutations tanpa saldo dari halaman tetap memuat saldonya sendiri', async () => {
+        api.get.mockResolvedValue({ data: [] });
+        await leaveService.getBalanceMutations({ year: 2026 });
+        expect(api.get.mock.calls.map((c) => c[0]).sort()).toEqual(['/sicuti/leave-balance/history', '/sicuti/leave-balance/me']);
+    });
+});

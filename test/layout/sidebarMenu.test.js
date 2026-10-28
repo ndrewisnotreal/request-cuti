@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { hasOpenableMenu } from '@/layout/composables/sidebarMenu';
 
-// QA #2: bila seluruh otorisasi dihilangkan, cukup Dashboard tanpa sidebar
 describe('hasOpenableMenu', () => {
     const dashboard = { label: 'Menu Utama', items: [{ label: 'Dashboard', to: '/' }] };
 

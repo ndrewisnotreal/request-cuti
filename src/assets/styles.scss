@@ -1,7 +1,5 @@
-/* PrimeVue 4 Theme Styles */
 @use 'primeicons/primeicons.css';
 
-/* Card Utility */
 .card {
     background-color: var(--p-surface-0);
     border: 1px solid var(--p-surface-200);
@@ -12,13 +10,10 @@
     transition: all 0.2s ease;
 }
 
-/* .card tidak ber-layer sehingga mengalahkan utility `mb-0`; kartu terakhir
-   (sel grid, akhir halaman) tidak butuh jarak bawah tambahan */
 .card:last-child {
     margin-bottom: 0;
 }
 
-/* Label status (Tag) tidak boleh terpotong ke dua baris */
 .p-tag {
     white-space: nowrap;
 }
@@ -29,7 +24,6 @@
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2);
 }
 
-/* Stat Widget Badge */
 .stat-icon {
     display: flex;
     align-items: center;
@@ -40,7 +34,6 @@
     flex-shrink: 0;
 }
 
-/* Secondary Outlined Button Enhancement */
 .p-button.p-button-outlined.p-button-secondary {
     background-color: var(--p-surface-0);
     border-color: var(--p-surface-300);
@@ -67,7 +60,6 @@
     }
 }
 
-/* Custom Scrollbars */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -86,7 +78,6 @@
     background: var(--p-surface-700);
 }
 
-/* PrimeVue Accessibility Screen-Reader utility (hides sr-only text from visual flow) */
 .p-hidden-accessible {
     border: 0 !important;
     clip: rect(0 0 0 0) !important;
@@ -99,7 +90,6 @@
     white-space: nowrap !important;
 }
 
-/* Rounded Day Cell for DatePicker */
 .p-datepicker-day,
 .p-datepicker-day-cell .p-datepicker-day {
     border-radius: 6px !important;
@@ -110,7 +100,6 @@
 }
 
 
-/* DataTable Alignment Utilities */
 .p-datatable {
     th.text-center .p-datatable-column-header-content,
     th[class*="text-center"] .p-datatable-column-header-content {
@@ -133,11 +122,6 @@
     }
 }
 
-/* ------------------------------------------------------------------------
-   Skala tipografi komponen PrimeVue — seragam di semua halaman.
-   Ditulis di luar layer supaya menang atas class ukuran per-halaman
-   (mis. text-[10px] di Tag) yang membuat ukuran teks tidak konsisten.
-   ------------------------------------------------------------------------ */
 .p-tag {
     font-size: 0.75rem;
     font-weight: 600;
@@ -165,7 +149,43 @@
     font-size: 0.8125rem;
 }
 
-/* View Transitions for Smooth Dark/Light Theme Switching */
+.p-select-overlay,
+.p-dropdown-panel {
+    max-width: calc(100vw - 1.5rem) !important;
+    overflow-x: hidden !important;
+}
+
+.p-select-option,
+.p-dropdown-item {
+    white-space: normal !important;
+    word-break: break-word !important;
+}
+
+@media (max-width: 640px) {
+    .p-paginator {
+        padding: 0.5rem 0.25rem !important;
+        gap: 0.125rem !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+
+        .p-paginator-page,
+        .p-paginator-first,
+        .p-paginator-prev,
+        .p-paginator-next,
+        .p-paginator-last {
+            min-width: 2rem !important;
+            height: 2rem !important;
+            font-size: 0.75rem !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .p-paginator-current {
+            font-size: 0.75rem !important;
+        }
+    }
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
     animation: none;
@@ -178,7 +198,6 @@
     z-index: 9999;
 }
 
-/* Fallback & Supporting Smooth Transition */
 .theme-transitioning,
 .theme-transitioning *,
 .theme-transitioning *::before,

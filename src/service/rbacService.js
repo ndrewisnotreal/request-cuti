@@ -6,14 +6,12 @@ export const rbacService = {
         return res?.data || res || [];
     },
 
-    // Permission Management prototype: role × modul × aksi (hanya Admin Super App)
     async getRoleAbilities() {
         const res = await api.get('/master/role-ability');
         return res?.data || res || { catalog: [], roles: [] };
     },
 
     async createRole({ nm_role, abilities = [], level }) {
-        // level ikut peran sumber ("Salin hak akses dari"); kosong = bawaan backend (Karyawan)
         const res = await api.post('/master/role-ability', { nm_role, abilities, ...(level !== undefined ? { level } : {}) });
         return res?.data || res;
     },
