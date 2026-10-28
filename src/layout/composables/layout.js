@@ -7,12 +7,12 @@ const STORAGE_KEYS = {
 };
 
 const colors = {
-    inalum: { 500: '#0077b8', 600: '#00649b' },
-    emerald: { 500: '#10b981', 600: '#059669' },
-    indigo: { 500: '#6366f1', 600: '#4f46e5' },
-    amber: { 500: '#f59e0b', 600: '#d97706' },
-    cyan: { 500: '#06b6d4', 600: '#0891b2' },
-    rose: { 500: '#f43f5e', 600: '#e11d48' }
+    inalum: { 500: '#0077b8', 600: '#00649b', 700: '#004f7d' },
+    emerald: { 500: '#10b981', 600: '#059669', 700: '#047857' },
+    indigo: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+    amber: { 500: '#f59e0b', 600: '#d97706', 700: '#b45309' },
+    cyan: { 500: '#06b6d4', 600: '#0891b2', 700: '#0e7490' },
+    rose: { 500: '#f43f5e', 600: '#e11d48', 700: '#be123c' }
 };
 
 function getStoredBoolean(key, defaultValue = false) {
@@ -40,6 +40,8 @@ function applyPrimaryColorCss(colorKey) {
     document.documentElement.style.setProperty('--p-primary-500', selected[500]);
     document.documentElement.style.setProperty('--p-primary-color', selected[500]);
     document.documentElement.style.setProperty('--p-primary-hover-color', selected[600]);
+    document.documentElement.style.setProperty('--p-primary-active-color', selected[700]);
+    document.documentElement.style.setProperty('--p-primary-contrast-color', '#ffffff');
 }
 
 const isDarkTheme = ref(getStoredBoolean(STORAGE_KEYS.DARK_THEME, false));
@@ -48,7 +50,6 @@ const isSidebarCollapsed = ref(getStoredBoolean(STORAGE_KEYS.SIDEBAR_COLLAPSED, 
 const configSidebarVisible = ref(false);
 const currentPrimaryColor = ref(getStoredString(STORAGE_KEYS.PRIMARY_COLOR, 'inalum'));
 
-// Sync initial dark class immediately
 if (typeof document !== 'undefined') {
     if (isDarkTheme.value) {
         document.documentElement.classList.add('app-dark');
@@ -57,7 +58,6 @@ if (typeof document !== 'undefined') {
     }
 }
 
-// Sync initial primary color immediately
 if (currentPrimaryColor.value) {
     applyPrimaryColorCss(currentPrimaryColor.value);
 }
@@ -68,7 +68,6 @@ export function useLayout() {
             typeof document !== 'undefined' &&
             Boolean(document.startViewTransition);
 
-        // Fallback for browsers without View Transitions
         if (!isAppearanceTransition) {
             if (typeof document !== 'undefined') {
                 document.documentElement.classList.add('theme-transitioning');
@@ -88,7 +87,6 @@ export function useLayout() {
             return;
         }
 
-        // Get coordinates from event or button bounding rect
         let x = event?.clientX;
         let y = event?.clientY;
         if (x === undefined || y === undefined || (x === 0 && y === 0)) {

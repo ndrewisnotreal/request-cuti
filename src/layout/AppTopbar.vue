@@ -1,13 +1,19 @@
 <script setup>
+import { publicPath } from '@/utils/publicPath';
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter, RouterLink } from 'vue-router';
 import { useLayout } from '@/layout/composables/layout';
-import { currentUser, logout, ROLE_LABELS, isAdmin, isSuperAdmin, can } from '@/service/sicutiService';
+import { currentUser, logout, persistCurrentUser, ROLE_LABELS, isAdmin, isSuperAdmin, can } from '@/service/sicutiService';
 import { showSidebar } from '@/layout/composables/sidebarMenu';
 import api, { assetUrl } from '@/service/api';
 import AppNotificationMenu from './AppNotificationMenu.vue';
+import AppTourMenu from './AppTourMenu.vue';
+import AppTourMenuItems from './AppTourMenuItems.vue';
+import { useTour } from '@/tour/useTour';
 import {
     Menu as MenuIcon,
+    PanelLeftClose,
+    PanelLeftOpen,
     Moon,
     Sun,
     LogOut,
@@ -20,20 +26,23 @@ const router = useRouter();
 const {
     toggleMobileMenu,
     toggleDarkMode,
-    isDarkTheme
+    isDarkTheme,
+    isSidebarCollapsed,
+    toggleSidebarCollapse
 } = useLayout();
+const sidebarToggleLabel = computed(() => (isSidebarCollapsed.value ? 'Lebarkan bilah samping' : 'Ciutkan bilah samping'));
 
 const profileMenuOpen = ref(false);
 const profileContainerRef = ref(null);
 
 const userPhoto = computed(() => assetUrl(currentUser.value?.foto_profil));
 
-// Sesi login lama belum menyimpan foto_profil → ambil sekali dari profil
 onMounted(async () => {
     if (!currentUser.value || currentUser.value.foto_profil !== undefined) return;
     try {
         const res = await api.get('/master/user/profile');
         currentUser.value.foto_profil = res?.data?.foto_profil || null;
+        persistCurrentUser();
     } catch {}
 });
 
@@ -68,12 +77,10 @@ const userInitials = computed(() => {
         .join('');
 });
 
-// Label role prototype (renderRoleBadge); role custom memakai nama dari backend
 const userRoleBadge = computed(() => {
     const r = currentUser.value?.role || currentUser.value?.kd_role || '';
     return ROLE_LABELS[r] || currentUser.value?.roleName || r || 'Karyawan';
 });
-// Akun admin memakai username (bukan NIK); super admin tidak terikat satu divisi
 const idLabel = computed(() => (isAdmin(currentUser.value) ? 'Username' : 'NIK'));
 const unitLabel = computed(() => {
     const u = currentUser.value;
@@ -81,12 +88,13 @@ const unitLabel = computed(() => {
     return u?.adminDivision || u?.department || u?.kd_dept || '-';
 });
 const showRoleBadge = computed(() => userRoleBadge.value !== currentUser.value?.name);
-// Profil mengikuti izin "Melihat Profil Pribadi" (redup bila dicabut, sama seperti sidebar)
 const canViewProfile = computed(() => can('login_user.view_profile'));
 
 function toggleProfileMenu() {
     profileMenuOpen.value = !profileMenuOpen.value;
 }
+
+const { pageTour, introTour } = useTour();
 
 function handleLogout() {
     profileMenuOpen.value = false;
@@ -97,20 +105,32 @@ function handleLogout() {
 
 <template>
     <header class="sticky top-0 z-40 w-full h-16 bg-surface-0 dark:bg-surface-900 border-b border-surface-200 dark:border-surface-800 px-3 sm:px-6 flex items-center justify-between gap-2 shadow-xs">
-        <!-- Left: Mobile Nav + Logo/Brand -->
         <div class="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
                 v-if="showSidebar"
                 type="button"
-                class="lg:hidden w-8 h-8 flex items-center justify-center text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-surface-0 hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors cursor-pointer"
+                class="lg:hidden w-10 h-10 flex items-center justify-center text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-surface-0 hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors cursor-pointer"
+                data-tour="menu-mobile"
                 @click="toggleMobileMenu"
                 aria-label="Buka menu navigasi utama"
             >
-                <MenuIcon :size="18" :stroke-width="1.75" />
+                <MenuIcon :size="20" :stroke-width="1.75" />
             </button>
-            <router-link to="/" class="flex items-center gap-2 sm:gap-2.5 min-w-0">
-                <img src="/logo-inalum.png" alt="Logo PT INALUM" class="h-7 sm:h-8 w-auto object-contain shrink-0" />
-                <!-- Layar sangat sempit: cukup logo agar semua tombol tetap muat -->
+            <button
+                v-if="showSidebar"
+                type="button"
+                class="hidden lg:flex w-10 h-10 items-center justify-center text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-surface-0 hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors cursor-pointer"
+                @click="toggleSidebarCollapse"
+                :aria-label="sidebarToggleLabel"
+                :title="sidebarToggleLabel"
+                :aria-expanded="!isSidebarCollapsed"
+                aria-controls="app-sidebar"
+            >
+                <PanelLeftOpen v-if="isSidebarCollapsed" :size="20" :stroke-width="1.75" />
+                <PanelLeftClose v-else :size="20" :stroke-width="1.75" />
+            </button>
+            <router-link to="/" :class="['flex items-center gap-2 sm:gap-2.5 min-w-0', { 'lg:hidden': showSidebar }]">
+                <img :src="publicPath('logo-inalum.png')" alt="Logo PT INALUM" class="h-7 sm:h-8 w-auto object-contain shrink-0" />
                 <div class="flex flex-col min-w-0 max-[359px]:hidden">
                     <span class="font-bold text-base leading-tight text-primary">Lebur</span>
                     <span class="hidden sm:block text-xs text-muted-color font-normal whitespace-nowrap">PT Indonesia Asahan Aluminium</span>
@@ -118,16 +138,14 @@ function handleLogout() {
             </router-link>
         </div>
 
-        <!-- Right: Actions & User Profile -->
         <div class="flex items-center gap-1 sm:gap-3 shrink-0">
-            <!-- Notifications Popover -->
+            <AppTourMenu />
             <AppNotificationMenu />
 
-            <!-- Dark Mode Toggle -->
             <button
                 type="button"
                 @click="toggleDarkMode($event)"
-                class="w-8 h-8 rounded-lg flex items-center justify-center text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-surface-0 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-pointer"
+                class="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-surface-0 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-pointer"
                 :aria-label="isDarkTheme ? 'Beralih ke mode terang' : 'Beralih ke mode gelap'"
                 title="Ganti Mode Gelap/Terang"
             >
@@ -135,13 +153,12 @@ function handleLogout() {
                 <Moon v-else :size="17" :stroke-width="1.75" />
             </button>
 
-            <!-- Vertical Divider -->
             <div class="h-6 w-px bg-surface-200 dark:bg-surface-800 mx-1 hidden sm:block"></div>
 
-            <!-- User Profile Dropdown Button & Popover -->
             <div ref="profileContainerRef" class="relative">
                 <button
                     type="button"
+                    data-tour="profile"
                     @click="toggleProfileMenu"
                     class="flex items-center gap-2 p-1 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     :aria-expanded="profileMenuOpen"
@@ -167,7 +184,6 @@ function handleLogout() {
                     <ChevronDown :size="14" class="text-muted-color hidden sm:block transition-transform duration-200" :class="{ 'rotate-180': profileMenuOpen }" />
                 </button>
 
-                <!-- Modern Account Popover Card -->
                 <transition
                     enter-active-class="transition duration-150 ease-out"
                     enter-from-class="transform scale-95 opacity-0"
@@ -182,7 +198,6 @@ function handleLogout() {
                         aria-label="Profil dan opsi akun"
                         class="absolute right-0 top-full mt-2 w-80 bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col text-left origin-top-right"
                     >
-                        <!-- Identity Header -->
                         <div class="p-4 bg-surface-50/80 dark:bg-surface-800/40 border-b border-surface-100 dark:border-surface-800 flex items-start gap-3.5">
                             <img
                                 v-if="userPhoto"
@@ -214,9 +229,7 @@ function handleLogout() {
                             </div>
                         </div>
 
-                        <!-- Action Items -->
                         <div class="p-2 space-y-1">
-                            <!-- Profil & Pengaturan Akun -->
                             <component
                                 :is="canViewProfile ? RouterLink : 'div'"
                                 :to="canViewProfile ? '/profile' : undefined"
@@ -242,10 +255,12 @@ function handleLogout() {
                                 <ChevronRight :size="14" class="text-muted-color group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                             </component>
 
-                            <!-- Divider -->
+                            <div v-if="pageTour || introTour" class="sm:hidden">
+                                <AppTourMenuItems @select="profileMenuOpen = false" />
+                            </div>
+
                             <div class="h-px bg-surface-100 dark:bg-surface-800 my-1"></div>
 
-                            <!-- Logout -->
                             <button
                                 type="button"
                                 @click="handleLogout"

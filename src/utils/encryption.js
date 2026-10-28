@@ -1,10 +1,3 @@
-/**
- * Local-only obfuscation for session/menu/akses in localStorage.
- * NOT a security boundary (key is in the bundle) — only prevents casual inspection.
- * Implemented without crypto-js because that package's UMD wrapper breaks under Vite 8 ESM
- * (`root is undefined` / no default export).
- */
-
 const SECRET_KEY = import.meta.env.VITE_ENCRYPTION_SECRET_KEY || 'default-secret-key-32-chars-long!!';
 
 function toBytes(str) {
@@ -40,11 +33,6 @@ function base64ToBytes(base64) {
     return out;
 }
 
-/**
- * Encrypt arbitrary JSON-serializable data (XOR + base64).
- * @param {unknown} data
- * @returns {string}
- */
 export function encryptData(data) {
     const jsonString = JSON.stringify(data);
     const keyBytes = toBytes(SECRET_KEY);
@@ -52,11 +40,6 @@ export function encryptData(data) {
     return bytesToBase64(xored);
 }
 
-/**
- * Decrypt a string previously produced by encryptData().
- * @param {string} encryptedData
- * @returns {unknown}
- */
 export function decryptData(encryptedData) {
     try {
         const keyBytes = toBytes(SECRET_KEY);
@@ -68,11 +51,6 @@ export function decryptData(encryptedData) {
     }
 }
 
-/**
- * Encrypt + persist a value under `key` in localStorage.
- * @param {string} key
- * @param {unknown} data
- */
 export function setEncryptedItem(key, data) {
     try {
         localStorage.setItem(key, encryptData(data));
@@ -81,12 +59,6 @@ export function setEncryptedItem(key, data) {
     }
 }
 
-/**
- * Read + decrypt a value from localStorage. Returns null when missing or
- * when decryption fails (and removes the corrupt entry).
- * @param {string} key
- * @returns {unknown}
- */
 export function getEncryptedItem(key) {
     try {
         const raw = localStorage.getItem(key);
@@ -99,10 +71,6 @@ export function getEncryptedItem(key) {
     }
 }
 
-/**
- * Remove a localStorage entry.
- * @param {string} key
- */
 export function removeEncryptedItem(key) {
     localStorage.removeItem(key);
 }

@@ -39,6 +39,16 @@ export default defineConfig(() => {
                 resolvers: [PrimeVueResolver()]
             })
         ],
+        build: {
+            rollupOptions: {
+                output: {
+                    manualChunks(id) {
+                        if (/node_modules[\\/](vue|@vue|vue-router)[\\/]/.test(id)) return 'vue';
+                        if (/node_modules[\\/]@primeuix[\\/]/.test(id)) return 'primeuix';
+                    }
+                }
+            }
+        },
         resolve: {
             alias: {
                 '@': fileURLToPath(new URL('./src', import.meta.url))

@@ -3,17 +3,11 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/service/api';
 import { currentUser, sicutiState, appMode, formatTimeAgo, isAdmin, isApprover, refreshPendingApprovalCount } from '@/service/sicutiService';
-import LeaveDetailDialog from '@/views/sicuti/leave/LeaveDetailDialog.vue';
+import LeaveDetailDialog from '@/components/leave/LeaveDetailDialog.vue';
+import AppNotificationItem from '@/layout/AppNotificationItem.vue';
 import {
     Bell,
     CheckCheck,
-    CheckCircle2,
-    XCircle,
-    AlertTriangle,
-    Clock,
-    Calendar,
-    ShieldCheck,
-    FileText,
     Inbox,
     ChevronRight
 } from 'lucide-vue-next';
@@ -25,15 +19,12 @@ const notifTab = ref('all');
 const selectedRequest = ref(null);
 const isDetailDialogVisible = ref(false);
 
-// Notifikasi tersimpan di backend (d_notification) beserta status bacanya
 const notifications = ref([]);
 const unreadCount = ref(0);
 let pollTimer = null;
 let lastTopId = null;
-// Cek notifikasi baru tiap 15 detik selama tab terbuka
 const POLL_MS = 15000;
 
-// Jenis notifikasi backend → kelompok ikon/warna panel
 const TYPE_GROUP = {
     leave_approved: 'approved',
     leave_progress: 'approved',
@@ -68,7 +59,6 @@ async function loadNotifications() {
             timeAgo: formatTimeAgo(n.created_at)
         }));
         unreadCount.value = Number(data.unread_count || 0);
-        // Notifikasi baru masuk → antrean, badge, dan riwayat ikut diperbarui tanpa reload
         const topId = notifications.value[0]?.id ?? null;
         if (lastTopId !== null && topId !== null && topId !== lastTopId) {
             sicutiState.dataVersion++;
@@ -76,13 +66,19 @@ async function loadNotifications() {
         }
         lastTopId = topId;
     } catch {
-        // Panel tetap bisa dibuka; dicoba lagi di siklus berikutnya
     }
 }
 
+let marking = false;
 async function markRead(ids) {
-    await api.put('/sicuti/notification/read', ids ? { ids } : {}).catch(() => {});
-    await loadNotifications();
+    if (marking) return;
+    marking = true;
+    try {
+        await api.put('/sicuti/notification/read', ids ? { ids } : {}).catch(() => {});
+        await loadNotifications();
+    } finally {
+        marking = false;
+    }
 }
 
 const displayedNotifications = computed(() => {
@@ -126,37 +122,11 @@ onBeforeUnmount(() => {
 });
 watch(() => currentUser.value?.id, loadNotifications);
 
-function getNotifIcon(type) {
-    switch (type) {
-        case 'approved': return CheckCircle2;
-        case 'rejected': return XCircle;
-        case 'returned': return AlertTriangle;
-        case 'pending': return Clock;
-        case 'submitted': return FileText;
-        case 'role_request': return ShieldCheck;
-        case 'info': return Calendar;
-        default: return Bell;
-    }
-}
-
-function getIconBadgeClass(type) {
-    switch (type) {
-        case 'approved': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400';
-        case 'rejected': return 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400';
-        case 'returned': return 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400';
-        case 'pending': return 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400';
-        case 'role_request':
-        case 'submitted': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400';
-        case 'info': return 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-400';
-        default: return 'bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-300';
-    }
-}
 
 function handleNotifClick(notif) {
     if (!notif.isRead) markRead([notif.id]);
     closeNotif();
 
-    // Pengajuan yang harus diproses: langsung ke antrean persetujuan
     if (notif.group === 'pending') {
         appMode.value = 'approval';
         router.push('/approval/pending');
@@ -201,6 +171,7 @@ function navigateFooter() {
     <div class="relative">
         <button
             type="button"
+            data-tour="notifications"
             @click="toggleNotif"
             class="w-8 h-8 rounded-lg flex items-center justify-center text-surface-600 dark:text-surface-300 hover:text-surface-900 dark:hover:text-surface-0 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-pointer relative"
             :aria-label="unreadCount > 0 ? `Buka notifikasi, ${unreadCount} pesan belum dibaca` : 'Buka notifikasi'"
@@ -215,14 +186,12 @@ function navigateFooter() {
             </span>
         </button>
 
-        <!-- Dropdown Popover -->
         <div
             v-if="notifOpen"
             role="dialog"
             aria-label="Notifikasi"
-            class="absolute right-0 top-full mt-2 w-80 sm:w-[380px] bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col"
+            class="fixed sm:absolute left-3 right-3 sm:left-auto sm:right-0 top-16 sm:top-full mt-2 w-auto sm:w-[380px] bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col"
         >
-            <!-- Header -->
             <div class="px-4 py-3 border-b border-surface-100 dark:border-surface-800 flex items-center justify-between bg-surface-50/60 dark:bg-surface-800/30">
                 <div class="flex items-center gap-2">
                     <span class="text-xs font-bold text-surface-900 dark:text-surface-100 uppercase tracking-wider">Notifikasi</span>
@@ -256,7 +225,6 @@ function navigateFooter() {
                 </div>
             </div>
 
-            <!-- Filter Tabs -->
             <div role="tablist" aria-label="Saring notifikasi" class="px-3 pt-2 pb-1.5 border-b border-surface-100 dark:border-surface-800/80 flex gap-2">
                 <button
                     type="button"
@@ -287,7 +255,6 @@ function navigateFooter() {
                     Belum Dibaca ({{ unreadCount }})
                 </button>
             </div>
-            <!-- List Body -->
             <div class="max-h-[380px] overflow-y-auto divide-y divide-surface-100 dark:divide-surface-800/60">
                 <div v-if="displayedNotifications.length === 0" class="py-10 px-4 text-center">
                     <div class="w-10 h-10 rounded-full bg-surface-100 dark:bg-surface-800 flex items-center justify-center mx-auto mb-2.5 text-surface-400">
@@ -301,60 +268,14 @@ function navigateFooter() {
                     </p>
                 </div>
 
-                <button
+                <AppNotificationItem
                     v-for="notif in displayedNotifications"
                     :key="notif.id"
-                    type="button"
-                    class="w-full text-left p-3.5 flex items-start gap-3 transition-colors cursor-pointer group hover:bg-surface-50 dark:hover:bg-surface-800/60 relative"
-                    :class="{
-                        'bg-primary-50/25 dark:bg-primary-950/15': !notif.isRead
-                    }"
+                    :item="notif"
                     @click="handleNotifClick(notif)"
-                >
-                    <!-- Type Icon Badge -->
-                    <div
-                        class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow-xs"
-                        :class="getIconBadgeClass(notif.group)"
-                    >
-                        <component :is="getNotifIcon(notif.group)" :size="15" :stroke-width="2" />
-                    </div>
-
-                    <!-- Content Details -->
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between gap-1">
-                            <div class="flex items-center gap-1.5 min-w-0">
-                                <span class="text-xs font-semibold truncate text-surface-900 dark:text-surface-100">
-                                    {{ notif.title }}
-                                </span>
-                                <span
-                                    v-if="!notif.isRead"
-                                    class="w-2 h-2 rounded-full bg-primary shrink-0"
-                                    title="Belum dibaca"
-                                ></span>
-                            </div>
-                            <span class="text-[11px] text-surface-400 dark:text-surface-500 whitespace-nowrap shrink-0">
-                                {{ notif.timeAgo }}
-                            </span>
-                        </div>
-
-                        <p class="text-xs text-surface-600 dark:text-surface-300 leading-snug line-clamp-2 mt-1">
-                            {{ notif.message }}
-                        </p>
-
-                        <div v-if="notif.requestId" class="mt-1.5 flex items-center gap-1.5">
-                            <span class="text-[11px] font-mono font-semibold px-1.5 py-0.5 rounded bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300">
-                                {{ notif.requestId }}
-                            </span>
-                            <span class="text-[11px] text-primary group-hover:underline flex items-center gap-0.5">
-                                <span>Buka detail</span>
-                                <ChevronRight :size="11" />
-                            </span>
-                        </div>
-                    </div>
-                </button>
+                />
             </div>
 
-            <!-- Footer -->
             <div class="p-2 border-t border-surface-100 dark:border-surface-800 bg-surface-50/60 dark:bg-surface-800/30 text-center">
                 <button
                     type="button"
@@ -370,7 +291,6 @@ function navigateFooter() {
         <div v-if="notifOpen" class="fixed inset-0 z-40" @click="closeNotif"></div>
     </div>
 
-    <!-- Live Detail Dialog directly from notification -->
     <LeaveDetailDialog
         v-model:visible="isDetailDialogVisible"
         :request="selectedRequest"

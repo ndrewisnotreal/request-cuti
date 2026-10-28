@@ -29,7 +29,6 @@ export const leaveService = {
         return res?.data !== undefined ? res.data : res;
     },
 
-    /** Lengkapi / ganti dokumen pendukung pengajuan milik sendiri (berkas diunggah dulu lewat uploadDocument). */
     async completeDocument(idRequest, file) {
         const uploaded = await this.uploadDocument(file);
         const url = uploaded?.url || uploaded?.file_path;
@@ -43,7 +42,6 @@ export const leaveService = {
 
     async createLeave(data) {
         const payload = {
-            // Diisi saat admin mengajukan atas nama karyawan (Buat Pengajuan Karyawan)
             uid_user_system: data.uid_user_system || undefined,
             kd_leave_type: data.kd_leave_type || data.id_leave_type || data.leaveTypeId,
             start_date: data.start_date || data.startDate,
@@ -52,7 +50,6 @@ export const leaveService = {
             substitute_id: data.substitute_id || data.substituteId || undefined,
             attachment_url: data.attachment_url || undefined,
             attachment_name: data.attachment_name || undefined,
-            // Simpan sebagai draf: belum dikirim ke approver
             ...(data.is_draft ? { is_draft: true } : {})
         };
         const res = await api.post('/sicuti/leave-request', payload);
@@ -70,7 +67,6 @@ export const leaveService = {
             total_days: data.total_days || data.totalDays || undefined,
             attachment_url: data.attachment_url || undefined,
             attachment_name: data.attachment_name || undefined,
-            // Khusus draf: simpan perubahan tanpa mengirim
             ...(data.is_draft ? { is_draft: true } : {})
         };
         try {
@@ -98,16 +94,12 @@ export const leaveService = {
         return Array.isArray(data) ? data : (data ? [data] : []);
     },
 
-    /**
-     * Mutasi saldo: saldo awal periode (kuota + carry over) lalu riwayat
-     * pemotongan/pengembalian dari backend. Tidak ada baris yang dikarang.
-     */
     async getBalanceMutations(params = {}) {
         const query = typeof params === 'object' ? params : { year: params };
         const year = Number(query.year || new Date().getFullYear());
 
         const [bals, historyRes] = await Promise.all([
-            this.getBalances({ year }).catch(() => []),
+            query.balances !== undefined ? Promise.resolve(query.balances).catch(() => []) : this.getBalances({ year }).catch(() => []),
             api.get('/sicuti/leave-balance/history', { year }).catch(() => [])
         ]);
 
@@ -142,7 +134,6 @@ export const leaveService = {
         const history = Array.isArray(historyRes?.data) ? historyRes.data : Array.isArray(historyRes) ? historyRes : [];
         for (const m of history) {
             const kind = String(m.type || '').toLowerCase();
-            // Penyesuaian admin bisa menambah atau mengurangi saldo (tanda dari amount)
             const isCredit = ['credit', 'refund', 'init', 'tambah', 'carry_over'].includes(kind) || (kind === 'adjust' && Number(m.amount) >= 0);
             mutations.push({
                 id: m.id_history || m.id,
@@ -154,7 +145,6 @@ export const leaveService = {
             });
         }
 
-        // Kronologis: saldo awal di atas, mutasi terbaru di bawah
         mutations.sort((a, b) => new Date(a.date) - new Date(b.date));
         return mutations;
     },
@@ -164,12 +154,11 @@ export const leaveService = {
     },
 
     async getLeaveTypes(all = false) {
-        const res = await api.get('/sicuti/leave-type', { all: all ? 'true' : 'false' });
+        const res = await api.get('/sicuti/leave-type', all ? { all: 'true' } : {});
         const data = res?.data !== undefined ? res.data : res;
         return Array.isArray(data) ? data : [];
     },
 
-    /** Rekan aktif satu departemen, untuk pilihan pengganti tugas. */
     async getColleagues() {
         const res = await api.get('/master/user/colleagues');
         const data = res?.data !== undefined ? res.data : res;

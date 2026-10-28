@@ -35,13 +35,10 @@ const pendingRequestsCount = computed(() => {
     ).length;
 });
 
-// Menu yang izinnya dinonaktifkan di Manajemen Hak Akses tetap tampil, tetapi tidak bisa dibuka
 function gated(item, allowed) {
     return allowed ? item : { ...item, disabled: true, badge: null };
 }
 
-// Susunan menu mengikuti prototype (renderSidebarMenu di app.js prototype)
-/** Menu sidebar sesuai peran & izin (dipakai AppMenu dan AppLayout). */
 export const sidebarModel = computed(() => {
     const user = currentUser.value;
     if (!user) return [];
@@ -50,15 +47,11 @@ export const sidebarModel = computed(() => {
     const admin = isAdmin(user);
     const superAdmin = isSuperAdmin(user);
 
-    // Dashboard selalu bisa dibuka semua akun. Kalender Cuti (backlog E35) diatur di Manajemen
-    // Hak Akses dan disembunyikan, bukan diredupkan, bila perannya belum diberi izin.
     const mainItems = [{ label: 'Dashboard', icon: LayoutDashboard, to: '/' }];
     if (can('dashboard_laporan.view_calendar')) mainItems.push({ label: 'Kalender Cuti', icon: CalendarDays, to: '/calendar' });
     sections.push({ label: 'Menu Utama', items: mainItems });
 
-    // Approval: Staff Approval, Kepala Seksi, Kepala Departemen
     if (isApprover(user)) {
-        // Nomor level alur bisa berubah saat admin menyisipkan tingkat; cukup nama bagian
         sections.push({
             label: 'Approval',
             items: [
@@ -76,12 +69,10 @@ export const sidebarModel = computed(() => {
         });
     }
 
-    // Pengajuan: pemohon (Staff IT, Staff Seksi, role custom); approver tidak mengajukan cuti
     if (!admin && !isApprovalOnly(user)) {
         sections.push({
             label: 'Pengajuan',
             items: [
-                // Prototype: daftar & tambah pengajuan jadi satu halaman "Pengajuan Cuti"
                 gated(
                     {
                         label: 'Pengajuan Cuti',
@@ -97,7 +88,6 @@ export const sidebarModel = computed(() => {
     }
 
     if (admin) {
-        // Master data: Admin Seksi hanya melihat, kecuali diberi izin kelola
         const canMaster = superAdmin || can('master_data.view_master_data');
         sections.push({
             label: 'Master Data',
@@ -138,14 +128,9 @@ export const sidebarModel = computed(() => {
         }
     }
 
-    // Profil Saya cukup diakses dari dropdown profil di topbar
     return sections;
 });
 
-/**
- * Ada menu selain Dashboard yang bisa dibuka? Bila seluruh otorisasi dihilangkan (QA #2),
- * cukup tampilkan Dashboard tanpa sidebar.
- */
 export function hasOpenableMenu(sections) {
     return sections.some((g) => g.items.some((i) => i.to !== '/' && !i.disabled));
 }

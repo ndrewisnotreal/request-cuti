@@ -69,8 +69,6 @@ app.use(PrimeVue, {
         preset: InalumPreset,
         options: {
             darkModeSelector: '.app-dark',
-            // Taruh style PrimeVue di layer sebelum `utilities` Tailwind v4, supaya
-            // class seperti text-xs / text-[10px] pada komponen PrimeVue tidak kalah
             cssLayer: {
                 name: 'primevue',
                 order: 'theme, base, primevue'
