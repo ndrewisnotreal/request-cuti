@@ -160,12 +160,16 @@ function resetFilters() {
     first.value = 0;
 }
 
+// Rentang ringkas: "4 – 7 November 2026", "28 Oktober – 3 November 2026"; beda tahun tetap lengkap.
 function formatPeriod(start, end) {
     if (!start) return '-';
-    if (!end || start === end) {
-        return formatDate(start);
-    }
-    return `${formatDate(start)} – ${formatDate(end)}`;
+    const s = formatDate(start);
+    const e = end ? formatDate(end) : s;
+    if (s === e) return s;
+    const [sd, sm, sy] = s.split(' ');
+    const [, em, ey] = e.split(' ');
+    if (!sy || sy !== ey) return `${s} – ${e}`;
+    return sm === em ? `${sd} – ${e}` : `${sd} ${sm} – ${e}`;
 }
 
 function viewDetail(req) {
@@ -336,28 +340,28 @@ function cancelRequest(req) {
                         </template>
                     </Column>
 
-                    <Column field="id_request" header="No. Pengajuan" sortable style="width: 13%">
+                    <Column field="id_request" header="No. Pengajuan" sortable>
                         <template #body="{ data }">
                             <span class="text-xs font-semibold text-primary whitespace-nowrap">{{ data.id_request || data.id }}</span>
                         </template>
                     </Column>
 
-                    <Column field="created_at" header="Tgl. Pengajuan" sortable style="width: 13%">
+                    <Column field="created_at" header="Tgl. Pengajuan" sortable>
                         <template #body="{ data }">
-                            <span class="text-xs text-surface-600 dark:text-surface-300 tabular-nums">
+                            <span class="text-xs text-surface-600 dark:text-surface-300 tabular-nums whitespace-nowrap">
                                 {{ formatDate(data.created_at || data.createdAt) }}
                             </span>
                         </template>
                     </Column>
 
-                    <Column header="Jenis Cuti & Alasan" style="min-width: 220px">
+                    <Column header="Jenis Cuti & Alasan" style="min-width: 200px">
                         <template #body="{ data }">
                             <div class="flex flex-col gap-0.5 py-0.5">
                                 <span class="text-xs font-semibold text-surface-900 dark:text-surface-0">
                                     {{ data.nm_leave_type || data.leaveTypeName || data.kd_leave_type || '-' }}
                                 </span>
                                 <span
-                                    class="text-[11px] text-muted-color line-clamp-1"
+                                    class="block max-w-64 truncate text-[11px] text-muted-color"
                                     :title="data.reason || '-'"
                                 >
                                     {{ data.reason || '-' }}
@@ -366,32 +370,29 @@ function cancelRequest(req) {
                         </template>
                     </Column>
 
-                    <Column header="Periode Cuti" sortable style="width: 18%">
+                    <Column field="start_date" header="Periode & Durasi" sortable>
                         <template #body="{ data }">
-                            <span class="text-xs text-surface-700 dark:text-surface-200 tabular-nums font-medium">
-                                {{ formatPeriod(data.start_date || data.startDate, data.end_date || data.endDate) }}
-                            </span>
+                            <div class="flex flex-col gap-0.5 py-0.5 whitespace-nowrap">
+                                <span class="text-xs text-surface-700 dark:text-surface-200 tabular-nums font-medium">
+                                    {{ formatPeriod(data.start_date || data.startDate, data.end_date || data.endDate) }}
+                                </span>
+                                <span class="text-[11px] text-muted-color" title="Sabtu, Minggu & libur nasional tidak dihitung">
+                                    <span class="font-semibold text-surface-700 dark:text-surface-200 tabular-nums">{{ data.total_days ?? data.totalDays ?? '-' }}</span> hari kerja
+                                </span>
+                            </div>
                         </template>
                     </Column>
 
-                    <Column header="Durasi" sortable style="width: 10%" class="text-left">
-                        <template #body="{ data }">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-100 dark:bg-surface-800 text-xs font-semibold text-surface-800 dark:text-surface-200 tabular-nums">
-                                {{ data.total_days ?? data.totalDays ?? '-' }} <span class="font-normal text-muted-color ml-1" title="Sabtu, Minggu & libur nasional tidak dihitung">hari kerja</span>
-                            </span>
-                        </template>
-                    </Column>
-
-                    <Column field="status" header="Status" sortable style="width: 14%" class="text-left" :pt="{ headerCell: { 'data-tour': 'leave-col-status' } }">
+                    <Column field="status" header="Status" sortable :pt="{ headerCell: { 'data-tour': 'leave-col-status' } }">
                         <template #body="{ data }">
                             <Tag
                                 :value="getStatusLabel(data.status)"
                                 :severity="getStatusSeverity(data.status)"
-                                class="text-xs font-semibold !rounded-full !px-2.5 !py-0.5"
+                                class="text-xs font-semibold !rounded-full !px-2.5 !py-0.5 whitespace-nowrap"
                             />
                             <p
                                 v-if="data.status === 'returned' && lastReturnNote(data)?.notes"
-                                class="mt-1 text-[11px] leading-snug text-amber-700 dark:text-amber-300 line-clamp-2"
+                                class="mt-1 max-w-48 text-[11px] leading-snug text-amber-700 dark:text-amber-300 line-clamp-2"
                                 :title="lastReturnNote(data).notes"
                             >
                                 {{ lastReturnNote(data).notes }}
@@ -399,9 +400,9 @@ function cancelRequest(req) {
                         </template>
                     </Column>
 
-                    <Column header="Aksi" style="width: 12rem; min-width: 12rem" class="text-left" :pt="{ headerCell: { 'data-tour': 'leave-col-aksi' } }">
+                    <Column header="Aksi" :pt="{ headerCell: { 'data-tour': 'leave-col-aksi' } }">
                         <template #body="{ data }">
-                            <div class="flex items-center justify-start gap-1.5 flex-wrap">
+                            <div class="flex items-center justify-start gap-1 whitespace-nowrap">
                                 <Button
                                     size="small"
                                     severity="secondary"
@@ -433,7 +434,7 @@ function cancelRequest(req) {
                                     title="Ajukan Ulang / Ubah"
                                 >
                                     <RotateCcw :size="12" :stroke-width="2.2" />
-                                    <span>Ajukan Ulang / Ubah</span>
+                                    <span>Ajukan Ulang</span>
                                 </button>
 
                                 <button
@@ -524,7 +525,7 @@ function cancelRequest(req) {
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-muted-color">Durasi:</span>
-                            <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-surface-100 dark:bg-surface-800 font-semibold text-surface-800 dark:text-surface-200 tabular-nums">
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-surface-100 dark:bg-surface-800 font-semibold text-surface-800 dark:text-surface-200 tabular-nums whitespace-nowrap">
                                 {{ item.total_days ?? item.totalDays ?? '-' }} hari kerja
                             </span>
                         </div>
@@ -613,6 +614,10 @@ function cancelRequest(req) {
 </template>
 
 <style scoped>
+/* Judul kolom tidak terlipat ("Tgl. / Pengajuan"); lebar kolom mengikuti isi. */
+:deep(.p-datatable-column-title) {
+    white-space: nowrap;
+}
 :deep(.header-center .p-datatable-column-header-content),
 :deep(th.text-center .p-datatable-column-header-content) {
     justify-content: center;
