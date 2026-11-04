@@ -54,6 +54,7 @@ const { mobileMenuOpen, closeMobileMenu, isSidebarCollapsed } = useLayout();
         </div>
     </div>
 
-    <Toast />
+    <!-- Lebar default 25rem melebihi layar HP; di layar kecil toast mengikuti lebar layar dengan jarak 0.75rem. -->
+    <Toast :breakpoints="{ '640px': { width: 'calc(100vw - 1.5rem)', right: '0.75rem', left: 'auto', top: '0.75rem' } }" />
     <ConfirmDialog />
 </template>
