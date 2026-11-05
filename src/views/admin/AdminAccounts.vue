@@ -5,6 +5,7 @@ import { rbacService } from '@/service/rbacService';
 import { currentUser, getAdminDivision, isSuperAdmin } from '@/service/sicutiService';
 import { useToast } from 'primevue/usetoast';
 import { statusSummary } from '@/service/statusReason';
+import { formatDate } from '@/utils/dateUtils';
 import StatusHistoryDialog from '@/components/admin/StatusHistoryDialog.vue';
 import AccountFormDialog from '@/components/admin/AccountFormDialog.vue';
 import ResetPasswordDialog from '@/components/admin/ResetPasswordDialog.vue';
@@ -272,6 +273,10 @@ onMounted(() => {
                 <Column header="Jabatan" style="width: 16%">
                     <template #body="{ data }">
                         <span class="text-surface-800 dark:text-surface-200">{{ data.position || '-' }}</span>
+                        <div class="text-[11px] text-muted-color">
+                            <template v-if="data.join_date">Masuk {{ formatDate(data.join_date) }}</template>
+                            <template v-else>Tanggal masuk belum diisi</template>
+                        </div>
                     </template>
                 </Column>
 

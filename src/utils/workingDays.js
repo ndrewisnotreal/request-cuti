@@ -47,3 +47,29 @@ export function countWorkingDays(startDate, endDate, holidayDateStrings = new Se
 
     return count;
 }
+
+export function latestEndDate(startDate, maxDays, holidayDateStrings = new Set()) {
+    if (!startDate || !(maxDays > 0)) return null;
+
+    const startStr = toDateString(startDate);
+    if (!startStr) return null;
+
+    const cur = new Date(`${startStr}T00:00:00Z`);
+    if (Number.isNaN(cur.getTime())) return null;
+
+    const holidays = holidayDateStrings instanceof Set ? holidayDateStrings : new Set(holidayDateStrings || []);
+    let count = 0;
+
+    while (true) {
+        const day = cur.getUTCDay();
+        const iso = cur.toISOString().slice(0, 10);
+        if (day !== 0 && day !== 6 && !holidays.has(iso)) {
+            count++;
+            if (count > maxDays) break;
+        }
+        cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+
+    cur.setUTCDate(cur.getUTCDate() - 1);
+    return new Date(cur.getUTCFullYear(), cur.getUTCMonth(), cur.getUTCDate());
+}

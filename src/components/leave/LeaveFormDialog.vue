@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { leaveService } from '@/service/leaveService';
 import { currentUser, isSubstituteRequired, lastReturnNote } from '@/service/sicutiService';
 import { useToast } from 'primevue/usetoast';
-import { countWorkingDays } from '@/utils/workingDays';
+import { countWorkingDays, latestEndDate } from '@/utils/workingDays';
 import LeaveAttachmentUpload from '@/components/leave/LeaveAttachmentUpload.vue';
 import LeaveFormValidationAlert from '@/components/leave/LeaveFormValidationAlert.vue';
 import LeaveFormDurationInfo from '@/components/leave/LeaveFormDurationInfo.vue';
@@ -152,6 +152,10 @@ const holidayDateSet = computed(() => {
     return set;
 });
 
+const maxEndDate = computed(() => {
+    return latestEndDate(form.value.startDate, selectedLeaveType.value?.maxDays, holidayDateSet.value);
+});
+
 const calculatedDays = computed(() => {
     return countWorkingDays(form.value.startDate, form.value.endDate, holidayDateSet.value);
 });
@@ -179,6 +183,13 @@ watch(
         validationAlert.value = null;
     }
 );
+
+watch(maxEndDate, (max) => {
+    const eDate = parseToDate(form.value.endDate);
+    if (max && eDate && eDate > max) {
+        form.value.endDate = max;
+    }
+});
 
 watch(selectedLeaveType, (newType, oldType) => {
     validationAlert.value = null;
@@ -521,6 +532,8 @@ function closeDialog() {
                         <DatePicker
                             v-model="form.endDate"
                             :minDate="minEndDate"
+                            :maxDate="maxEndDate"
+                            :disabled="!selectedLeaveType || !form.startDate"
                             dateFormat="dd M yy"
                             placeholder="Pilih Tanggal Selesai"
                             class="w-full"

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { leaveService } from '@/service/leaveService';
@@ -8,10 +8,12 @@ import {
     getDivisionUsers,
     getUserBalance,
     calculateWorkingDays,
+    holidayDateSet,
     syncFromBackend,
     isSubstituteRequired,
     ROLE_LABELS
 } from '@/service/sicutiService';
+import { latestEndDate } from '@/utils/workingDays';
 import { FilePlus2, Send } from 'lucide-vue-next';
 
 const toast = useToast();
@@ -35,6 +37,11 @@ const selectedType = computed(() => leaveTypes.value.find((t) => t.id === form.v
 const toIso = (d) => (d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : null);
 const workingDays = computed(() => calculateWorkingDays(toIso(form.value.startDate), toIso(form.value.endDate)));
 const balance = computed(() => (form.value.userId ? getUserBalance(form.value.userId) : null));
+const maxEndDate = computed(() => latestEndDate(form.value.startDate, selectedType.value?.maxDays, holidayDateSet()));
+
+watch(maxEndDate, (max) => {
+    if (max && form.value.endDate && form.value.endDate > max) form.value.endDate = max;
+});
 
 const problem = computed(() => {
     const f = form.value;
@@ -143,6 +150,8 @@ async function submit() {
                         iconDisplay="input"
                         placeholder="Pilih tanggal"
                         :minDate="form.startDate || undefined"
+                        :maxDate="maxEndDate || undefined"
+                        :disabled="!selectedType || !form.startDate"
                         fluid
                     />
                 </div>
