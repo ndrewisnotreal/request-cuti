@@ -63,19 +63,6 @@ async function exportExcel() {
     }
 }
 
-function tenure(joinDate) {
-    if (!joinDate) return 'tanggal masuk belum diisi';
-    const start = new Date(String(joinDate).slice(0, 10));
-    if (Number.isNaN(start.getTime())) return '-';
-    const now = new Date();
-    let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-    if (now.getDate() < start.getDate()) months--;
-    if (months < 0) return 'belum mulai bekerja';
-    const y = Math.floor(months / 12);
-    const m = months % 12;
-    return [y ? `${y} tahun` : '', m ? `${m} bulan` : '', !y && !m ? 'kurang dari 1 bulan' : ''].filter(Boolean).join(' ');
-}
-
 async function loadEmployees() {
     loading.value = true;
     try {
@@ -242,9 +229,6 @@ onMounted(() => {
                 <Column header="Jabatan" style="width: 18%">
                     <template #body="{ data }">
                         <span class="text-surface-800 dark:text-surface-200">{{ data.position || '-' }}</span>
-                        <div class="text-[11px] text-muted-color">
-                            {{ data.employment_status || 'Status belum diisi' }} · {{ tenure(data.join_date) }}
-                        </div>
                     </template>
                 </Column>
 

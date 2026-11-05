@@ -40,7 +40,7 @@ export function formJenis(leaveTypeName) {
     if (/sakit/.test(n)) return 'Sakit';
     if (/duka/.test(n)) return 'Berduka Cita';
     if (/tanpa bayar|unpaid/.test(n)) return 'Cuti Tanpa Bayar';
-    if (/hamil|melahirkan/.test(n)) return 'Hamil';
+    if (/hamil|melahirkan/.test(n) && !/laki/.test(n)) return 'Hamil';
     if (/tahunan|pribadi|keluarga/.test(n)) return 'Izin Pribadi / Keluarga';
     return null;
 }

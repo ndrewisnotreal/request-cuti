@@ -1,6 +1,6 @@
 <script setup>
 import { publicPath } from '@/utils/publicPath';
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter, RouterLink } from 'vue-router';
 import { useLayout } from '@/layout/composables/layout';
 import { currentUser, logout, persistCurrentUser, ROLE_LABELS, isAdmin, isSuperAdmin, can } from '@/service/sicutiService';
@@ -35,16 +35,41 @@ const sidebarToggleLabel = computed(() => (isSidebarCollapsed.value ? 'Lebarkan 
 const profileMenuOpen = ref(false);
 const profileContainerRef = ref(null);
 
-const userPhoto = computed(() => assetUrl(currentUser.value?.foto_profil));
+const photoFailed = ref(false);
+let photoRetried = false;
 
-onMounted(async () => {
-    if (!currentUser.value || currentUser.value.foto_profil !== undefined) return;
+const userPhoto = computed(() => (photoFailed.value ? null : assetUrl(currentUser.value?.foto_profil)));
+
+// Foto bisa diganti dari perangkat lain dan berkas lamanya terhapus, jadi path yang tersimpan di browser bisa usang.
+async function refreshUserPhoto() {
+    if (!currentUser.value) return;
     try {
         const res = await api.get('/master/user/profile');
         currentUser.value.foto_profil = res?.data?.foto_profil || null;
         persistCurrentUser();
     } catch {}
-});
+}
+
+async function handlePhotoError(event) {
+    const failedPath = currentUser.value?.foto_profil;
+    if (event.target.getAttribute('src') !== assetUrl(failedPath)) return;
+    if (!photoRetried) {
+        photoRetried = true;
+        await refreshUserPhoto();
+        if (currentUser.value?.foto_profil !== failedPath) return;
+    }
+    photoFailed.value = true;
+}
+
+watch(
+    () => currentUser.value?.foto_profil,
+    () => {
+        photoFailed.value = false;
+        photoRetried = false;
+    }
+);
+
+onMounted(refreshUserPhoto);
 
 function handleClickOutside(event) {
     if (profileContainerRef.value && !profileContainerRef.value.contains(event.target)) {
@@ -170,6 +195,7 @@ function handleLogout() {
                         :src="userPhoto"
                         :alt="`Foto profil ${currentUser?.name || ''}`"
                         class="w-8 h-8 rounded-full object-cover border border-primary/20 shrink-0 shadow-xs"
+                        @error="handlePhotoError"
                     />
                     <div
                         v-else
@@ -204,6 +230,7 @@ function handleLogout() {
                                 :src="userPhoto"
                                 :alt="`Foto profil ${currentUser?.name || ''}`"
                                 class="w-12 h-12 rounded-full object-cover border border-primary/20 shrink-0 select-none shadow-xs mt-0.5"
+                                @error="handlePhotoError"
                             />
                             <div
                                 v-else
